@@ -7,9 +7,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 jobs:
   build:
@@ -46,6 +44,8 @@ jobs:
       #   run: npm run build
       - name: Build Angular
         run: npm run build -- --base-href="/${{ github.event.repository.name }}/" --configuration production
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
       - name: Debug dist folder
         run: ls -la dist
       - name: Upload artifact
@@ -54,7 +54,11 @@ jobs:
           path: dist/demo/browser
   deploy:
     needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
