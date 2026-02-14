@@ -1,8 +1,10 @@
-name: Angular CI/CD
+name: Angular CI
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
+  pull_request:
 
 permissions:
   contents: read
@@ -12,52 +14,51 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: project
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: project/package-lock.json
-
       - name: Install dependencies
-        run: npm ci
-
-      # ✅ Génération safe du fichier Angular environment
-      - name: Generate environment.prod.ts
-        shell: bash
+        run: npm install
+      - name: adding environment variables
         run: |
-          mkdir -p src/environments
-          cat > src/environments/environment.prod.ts <<'EOF'
-          export const environment = {
+          echo "export const environment = {
             production: true,
             supabaseUrl: '${{ vars.VITE_SUPABASE_URL }}',
             supabaseAnonKey: '${{ vars.VITE_SUPABASE_ANON_KEY }}'
-          };
-          EOF
+          };" > src/environments/environment.prod.ts
 
+      # - name: Run lint
+      #   run: npm run lint
+      - name: Skip lint (not configured)
+        run: echo "Lint not configured for this project"
+
+      - name: Run unit tests
+        run: npx ng test demo --watch=false --browsers=ChromeHeadless
+
+      # - name: Build Angular app
+      #   run: npm run build
       - name: Build Angular
-        run: npm run build -- --base-href "/${{ github.event.repository.name }}/"
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload build artifact
+        run: npm run build -- --base-href="/${{ github.event.repository.name }}/" --configuration production
+      - name: Debug dist folder
+        run: ls -la dist
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: project/dist/demo
-
+          path: dist/demo/browser
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
