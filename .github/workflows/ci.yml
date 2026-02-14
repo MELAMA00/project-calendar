@@ -17,14 +17,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: adding environment variables
         run: |
           echo "export const environment = {
@@ -39,7 +40,7 @@ jobs:
         run: echo "Lint not configured for this project"
 
       - name: Run unit tests
-        run: npx ng test demo --watch=false --browsers=ChromeHeadless
+        run: npm test
 
       # - name: Build Angular app
       #   run: npm run build
